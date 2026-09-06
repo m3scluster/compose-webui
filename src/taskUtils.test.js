@@ -261,3 +261,23 @@ test('reads an external default network driver as user network mode', () => {
   assert.equal(form.networkMode, 'user')
   assert.equal(form.networkDriver, 'weave')
 })
+
+test('round-trips restart policy, environment and labels through Compose YAML', () => {
+  const form = {
+    ...initialDeployForm,
+    application: 'web',
+    image: 'nginx:latest',
+    restart: 'on-failure',
+    environment: JSON.stringify({ NODE_ENV: 'production', PORT: 8080 }),
+    labels: JSON.stringify({ team: 'platform', tier: 'frontend' }),
+  }
+  const yaml = buildComposeYaml(form)
+  const parsed = YAML.parse(yaml).services.web
+  assert.equal(parsed.restart, 'on-failure')
+  assert.deepEqual(parsed.environment, { NODE_ENV: 'production', PORT: 8080 })
+  assert.deepEqual(parsed.labels, { team: 'platform', tier: 'frontend' })
+  const roundTripped = formFromYaml(yaml, initialDeployForm)
+  assert.equal(roundTripped.restart, 'on-failure')
+  assert.deepEqual(JSON.parse(roundTripped.environment), parsed.environment)
+  assert.deepEqual(JSON.parse(roundTripped.labels), parsed.labels)
+})
