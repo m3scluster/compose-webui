@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import YAML from 'yaml'
 import { request, requestText } from './api.js'
 import { buildComposeYaml, formFromYaml, initialDeployForm, scaleComposeYaml } from './deployYaml.js'
@@ -280,4 +281,26 @@ test('round-trips restart policy, environment and labels through Compose YAML', 
   assert.equal(roundTripped.restart, 'on-failure')
   assert.deepEqual(JSON.parse(roundTripped.environment), parsed.environment)
   assert.deepEqual(JSON.parse(roundTripped.labels), parsed.labels)
+})
+
+test('omits empty environment and labels while preserving the restart default', () => {
+  const form = { ...initialDeployForm, application: 'web', image: 'nginx:latest', environment: '', labels: '' }
+  const service = YAML.parse(buildComposeYaml(form)).services.web
+  assert.equal(service.restart, 'always')
+  assert.equal('environment' in service, false)
+  assert.equal('labels' in service, false)
+  const roundTripped = formFromYaml(buildComposeYaml(form), initialDeployForm)
+  assert.equal(roundTripped.restart, 'always')
+  assert.equal(roundTripped.environment, '')
+  assert.equal(roundTripped.labels, '')
+})
+
+test('keeps deploy form controls and YAML documentation guidance visible', () => {
+  const source = readFileSync(new URL('./App.jsx', import.meta.url), 'utf8')
+  assert.doesNotMatch(source, /(?:legend|className)=['"][^'"]*advanced/i)
+  assert.match(source, /field\('Restart policy', 'restart'/)
+  assert.match(source, /ObjectEditor[^\n]*Environment/)
+  assert.match(source, /ObjectEditor[^\n]*Labels/)
+  assert.match(source, /YAML editor/i)
+  assert.match(source, /https:\/\/aventer-ug\.github\.io\/mesos-compose\//)
 })
