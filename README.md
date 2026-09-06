@@ -10,7 +10,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open the printed local URL. Enter the backend Basic Auth credentials in the connection form. Credentials are kept in React memory only and are never written to `.env` or local storage.
+Open the printed local URL. Enter the backend Basic Auth credentials in the login screen. Credentials are kept in `localStorage` so a page reload does not prompt again; they are never written to `.env`. Remove the browser's site data to clear the stored login.
 
 ## Configuration
 
