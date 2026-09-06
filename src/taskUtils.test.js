@@ -165,3 +165,20 @@ test('keeps form values visible in YAML and maps YAML edits back to the form', (
   const edited = formFromYaml('services:\n  api:\n    image: busybox:latest\n    command: [sh, -c, echo, ready]\n    ports:\n      - 9000:80/tcp\n', { ...initialDeployForm, project: 'demo' })
   assert.deepEqual({ project: edited.project, application: edited.application, image: edited.image, command: edited.command, args: edited.args, port: edited.port }, { project: 'demo', application: 'api', image: 'busybox:latest', command: 'sh', args: '-c echo ready', port: '9000:80/tcp' })
 })
+
+test('serializes multiple ports with dynamic sources and mesos-compose protocols', () => {
+  const yaml = buildComposeYaml({ ...initialDeployForm, application: 'web', image: 'nginx', ports: [
+    { source: '', target: '80', protocol: 'http' },
+    { source: '8443', target: '443', protocol: 'https' },
+  ] })
+  assert.match(yaml, /- 80\/http/)
+  assert.match(yaml, /- 8443:443\/https/)
+})
+
+test('reads every compose port into editable source, target and protocol fields', () => {
+  const form = formFromYaml('services:\n  web:\n    image: nginx\n    ports:\n      - 80/http\n      - 8443:443/https\n', initialDeployForm)
+  assert.deepEqual(form.ports, [
+    { source: '', target: '80', protocol: 'http' },
+    { source: '8443', target: '443', protocol: 'https' },
+  ])
+})
