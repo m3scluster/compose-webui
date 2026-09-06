@@ -199,6 +199,12 @@ test('reads every compose port into editable source, target and protocol fields'
   ])
 })
 
+test('prefills the network field with default and serializes it into the YAML', () => {
+  assert.equal(initialDeployForm.network, 'default')
+  const yaml = buildComposeYaml({ ...initialDeployForm, application: 'web', image: 'nginx' })
+  assert.match(yaml, /\n    network: default/)
+})
+
 test('serializes user network mode as an external default network with its driver', () => {
   const yaml = buildComposeYaml({ ...initialDeployForm, application: 'web', image: 'nginx', networkMode: 'user', networkDriver: 'weave' })
   assert.doesNotMatch(yaml, /network_mode:/)

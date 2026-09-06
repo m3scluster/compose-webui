@@ -1,6 +1,6 @@
 import YAML from 'yaml'
 
-export const initialDeployForm = { project: '', application: '', image: '', containerType: 'docker', command: '', args: '', restart: 'always', shell: false, instances: '1', cpus: '0.5', memory: '128', disk: '0', port: '', ports: [], volumes: '', environment: '', hostname: '', containerName: '', networkMode: '', networkDriver: '', network: '', labels: '', mesos: '', networks: '', gpus: '', ulimits: '', healthcheck: '', runtime: '', placement: '', topNetworks: '', namedVolumes: '' }
+export const initialDeployForm = { project: '', application: '', image: '', containerType: 'docker', command: '', args: '', restart: 'always', shell: false, instances: '1', cpus: '0.5', memory: '128', disk: '0', port: '', ports: [], volumes: '', environment: '', hostname: '', containerName: '', networkMode: '', networkDriver: '', network: 'default', labels: '', mesos: '', networks: '', gpus: '', ulimits: '', healthcheck: '', runtime: '', placement: '', topNetworks: '', namedVolumes: '' }
 
 const jsonObject = (text) => { if (!text.trim()) return undefined; return JSON.parse(text) }
 const textValue = (value) => value === undefined || value === null ? '' : typeof value === 'string' ? value : JSON.stringify(value, null, 2)
