@@ -60,3 +60,27 @@ export const taskMemory = (task) => Number(valueFrom(task, 'memory', 'Memory', '
 
 
 export const formatMemory = (value) => { const number = Number(value); if (!Number.isFinite(number) || number === 0) return '0 MB'; return number >= 1024 ? `${(number / 1024).toFixed(1)} GB` : `${number.toFixed(number % 1 ? 1 : 0)} MB` }
+
+export const groupTasks = (tasks = []) => {
+  const groups = new Map()
+  for (const task of Array.isArray(tasks) ? tasks : []) {
+    const names = deriveNames(task?.task_name || task?.taskName)
+    const key = `${names.project}\u0000${names.service}`
+    let group = groups.get(key)
+    if (!group) {
+      group = { key, project: names.project, service: names.service, tasks: [], taskCount: 0, running: 0, failed: 0, cpu: 0, memory: 0 }
+      groups.set(key, group)
+    }
+    group.tasks.push(task)
+    group.taskCount += 1
+    group.running += isRunning(task) ? 1 : 0
+    group.failed += isFailed(task) ? 1 : 0
+    group.cpu += taskCpu(task)
+    group.memory += taskMemory(task)
+  }
+  return [...groups.values()].map((group) => ({
+    ...group,
+    representative: group.tasks[0],
+    state: group.running > 0 ? 'TASK_RUNNING' : group.failed > 0 ? 'TASK_FAILED' : taskState(group.tasks[0]),
+  }))
+}

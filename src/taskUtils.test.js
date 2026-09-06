@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { request } from './api.js'
 import { buildComposeYaml, formFromYaml, initialDeployForm } from './deployYaml.js'
-import { deriveNames, formatMemory, formatTaskName, isFailed, isRunning, parseTaskName, taskCpu, taskMemory, taskState, validateTaskSegment } from './taskUtils.js'
+import { deriveNames, formatMemory, formatTaskName, groupTasks, isFailed, isRunning, parseTaskName, taskCpu, taskMemory, taskState, validateTaskSegment } from './taskUtils.js'
 
 test('derives project and service from colon task names', () => {
   assert.deepEqual(deriveNames('compose:billing:api.abc.0'), { project: 'billing', service: 'api.abc.0' })
@@ -69,6 +69,22 @@ test('preserves unprefixed tasks and rejects empty or special canonical segments
     assert.throws(() => parseTaskName(value, { strict: true }))
   }
   assert.throws(() => formatTaskName({ framework: 'framework', project: 'project:name', task: 'service' }), { code: 'TASK_NAME_INVALID_CHARACTERS' })
+})
+
+test('groups tasks by project and service while retaining task records and totals', () => {
+  const groups = groupTasks([
+    { task_name: 'framework:alpha:web', cpu: 0.5, memory: 128, state: 'TASK_RUNNING' },
+    { task_name: 'framework:beta:web', cpu: 1, memory: 256, state: 'TASK_FAILED' },
+    { task_name: 'framework:alpha:web', cpu: 0.25, memory: 64, state: 'TASK_RUNNING' }
+  ])
+  assert.deepEqual(groups.map(({ project, service, taskCount }) => ({ project, service, taskCount })), [
+    { project: 'alpha', service: 'web', taskCount: 2 },
+    { project: 'beta', service: 'web', taskCount: 1 }
+  ])
+  assert.equal(groups[0].tasks.length, 2)
+  assert.equal(groups[0].cpu, 0.75)
+  assert.equal(groups[0].memory, 192)
+  assert.equal(groups[0].state, 'TASK_RUNNING')
 })
 
 test('builds authenticated API requests and parses JSON responses', async () => {
