@@ -134,6 +134,22 @@ test('propagates mesos-compose API errors with status and response text excluded
   }
 })
 
+test('sends the requested replica count to the service scaling endpoint', async () => {
+  const originalFetch = globalThis.fetch
+  const calls = []
+  globalThis.fetch = async (url, options) => { calls.push({ url, options }); return { ok: true, text: async () => '' } }
+  try {
+    const result = await request('/api/compose/v0/demo/web/scale', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ replicas: 3 }) }, 'u:p', 'https://compose.example.test')
+    assert.equal(result, null)
+    assert.equal(calls[0].url, 'https://compose.example.test/api/compose/v0/demo/web/scale')
+    assert.equal(calls[0].options.method, 'PUT')
+    assert.equal(calls[0].options.headers.get('Content-Type'), 'application/json')
+    assert.equal(calls[0].options.body, '{"replicas":3}')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
 test('keeps form values visible in YAML and maps YAML edits back to the form', () => {
   const form = { ...initialDeployForm, project: 'demo', application: 'web', image: 'nginx:latest', command: 'nginx', args: '-g daemon off;', port: '8080:80/tcp', volumes: 'data:/var/lib/data' }
   const yaml = buildComposeYaml(form)

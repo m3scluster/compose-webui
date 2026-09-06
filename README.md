@@ -22,6 +22,7 @@ The backend routes used are:
 - `DELETE /api/compose/v0/tasks/:taskid`
 - `DELETE /api/compose/v0/:project/:service`
 - `PUT /api/compose/v0/:project/:service/restart`
+- `PUT /api/compose/v0/:project/:service/scale` (JSON body: `{ "replicas": <number> }`)
 - `PUT /api/compose/v0/:project` (YAML body)
 
 ## Production build
