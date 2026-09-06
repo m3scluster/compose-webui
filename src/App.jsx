@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Activity, Box, ChevronRight, Cpu, Database, LayoutDashboard, Menu, Play, RefreshCw, Search, Server, ShieldCheck, Terminal, Trash2, Upload, X } from 'lucide-react'
-import { deriveNames, formatMemory, isFailed, isRunning, taskState } from './taskUtils.js'
+import { deriveNames, formatMemory, isFailed, isRunning, taskCpu, taskMemory, taskState } from './taskUtils.js'
 import './App.css'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://api.example.invalid:10002'
@@ -32,7 +32,7 @@ export default function App() {
   useEffect(() => { if (auth) load() }, [auth, load])
   useEffect(() => { if (!poll || !auth) return; const id = setInterval(load, 15000); return () => clearInterval(id) }, [poll, auth, load])
   const filtered = useMemo(() => tasks.filter((t) => { const n = deriveNames(t.task_name || t.taskName); const hay = [t.task_id, t.task_name, n.project, n.service, t.agent, t.hostname, t.container_image].join(' ').toLowerCase(); const matches = !query || hay.includes(query.toLowerCase()); return matches && (tab === 'all' || (tab === 'running' && isRunning(t)) || (tab === 'failed' && isFailed(t)) || (tab === 'stopped' && !isRunning(t) && !isFailed(t))) }), [tasks, query, tab])
-  const stats = useMemo(() => ({ running: tasks.filter(isRunning).length, failed: tasks.filter(isFailed).length, cpu: tasks.reduce((a, t) => a + (Number(t.cpu) || 0), 0), mem: tasks.reduce((a, t) => a + (Number(t.memory) || 0), 0), agents: new Set(tasks.map(t => t.agent || t.hostname).filter(Boolean)).size }), [tasks])
+  const stats = useMemo(() => ({ running: tasks.filter(isRunning).length, failed: tasks.filter(isFailed).length, cpu: tasks.reduce((a, t) => a + taskCpu(t), 0), mem: tasks.reduce((a, t) => a + taskMemory(t), 0), agents: new Set(tasks.map(t => t.agent || t.Agent || t.hostname || t.Hostname).filter(Boolean)).size }), [tasks])
   const mutate = async (path, options, label) => { setBusy(label); try { await request(path, options, auth); setNotice(`${label} erfolgreich`); await load() } catch (e) { setError(`${label} fehlgeschlagen: ${e.message}`) } finally { setBusy('') } }
   const kill = (t) => { if (window.confirm(`Task ${t.task_id || 'ohne ID'} wirklich beenden?`)) mutate(`/api/compose/v0/tasks/${encodeURIComponent(t.task_id)}`, { method: 'DELETE' }, 'Task beendet') }
   const restart = (t) => { const n = deriveNames(t.task_name); if (window.confirm(`${n.project}/${n.service} wirklich neu starten?`)) mutate(`/api/compose/v0/${encodeURIComponent(n.project)}/${encodeURIComponent(n.service)}/restart`, { method: 'PUT' }, 'Service neu gestartet') }
