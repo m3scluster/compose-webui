@@ -198,3 +198,15 @@ test('reads every compose port into editable source, target and protocol fields'
     { source: '8443', target: '443', protocol: 'https' },
   ])
 })
+
+test('serializes user network mode as an external default network with its driver', () => {
+  const yaml = buildComposeYaml({ ...initialDeployForm, application: 'web', image: 'nginx', networkMode: 'user', networkDriver: 'weave' })
+  assert.doesNotMatch(yaml, /network_mode:/)
+  assert.match(yaml, /default:\n    external: true\n    driver: weave/)
+})
+
+test('reads an external default network driver as user network mode', () => {
+  const form = formFromYaml('services:\n  web:\n    image: nginx\nnetworks:\n  default:\n    external: true\n    driver: weave\n', initialDeployForm)
+  assert.equal(form.networkMode, 'user')
+  assert.equal(form.networkDriver, 'weave')
+})
