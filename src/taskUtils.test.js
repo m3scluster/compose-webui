@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { request } from './api.js'
 import { deriveNames, formatMemory, formatTaskName, isFailed, isRunning, parseTaskName, taskCpu, taskMemory, taskState, validateTaskSegment } from './taskUtils.js'
 
 test('derives project and service from colon task names', () => {
@@ -44,4 +45,74 @@ test('reads Mesos Compose exported field names and resource objects', () => {
   assert.equal(taskMemory(task), 128)
   assert.equal(taskCpu({ resources: { cpus: 1 } }), 1)
   assert.equal(taskMemory({ resources: { mem: 256 } }), 256)
+})
+
+test('keeps projects distinct for multiple tasks in one framework', () => {
+  const tasks = [
+    { task_name: 'framework:alpha:web' },
+    { task_name: 'framework:beta:web' },
+    { task_name: 'framework:alpha:worker' },
+    { task_name: 'framework:alpha:web' }
+  ]
+  assert.deepEqual(tasks.map(({ task_name }) => deriveNames(task_name)), [
+    { project: 'alpha', service: 'web' },
+    { project: 'beta', service: 'web' },
+    { project: 'alpha', service: 'worker' },
+    { project: 'alpha', service: 'web' }
+  ])
+})
+
+test('preserves unprefixed tasks and rejects empty or special canonical segments', () => {
+  assert.deepEqual(deriveNames('legacy.worker.0'), { project: 'default', service: 'legacy.worker.0', legacy: true, raw: 'legacy.worker.0' })
+  for (const value of ['framework::service', 'framework:project:', 'framework:project:service:name', 'framework:project:service/name']) {
+    assert.throws(() => parseTaskName(value, { strict: true }))
+  }
+  assert.throws(() => formatTaskName({ framework: 'framework', project: 'project:name', task: 'service' }), { code: 'TASK_NAME_INVALID_CHARACTERS' })
+})
+
+test('builds authenticated API requests and parses JSON responses', async () => {
+  const originalFetch = globalThis.fetch
+  const calls = []
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url, options })
+    return { ok: true, text: async () => JSON.stringify([{ task_name: 'framework:alpha:web' }]) }
+  }
+  try {
+    const result = await request('/api/compose/v0/tasks', {}, 'mesos:secret', 'https://compose.example.test/')
+    assert.deepEqual(result, [{ task_name: 'framework:alpha:web' }])
+    assert.equal(calls[0].url, 'https://compose.example.test/api/compose/v0/tasks')
+    assert.equal(calls[0].options.headers.get('Authorization'), `Basic ${btoa('mesos:secret')}`)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('sends encoded project deployment YAML and supports empty success bodies', async () => {
+  const originalFetch = globalThis.fetch
+  const calls = []
+  globalThis.fetch = async (url, options) => { calls.push({ url, options }); return { ok: true, text: async () => '' } }
+  try {
+    const result = await request(`/api/compose/v0/${encodeURIComponent('project name')}`, { method: 'PUT', headers: { 'Content-Type': 'application/x-yaml' }, body: 'services: {}\n' }, 'u:p', 'https://compose.example.test')
+    assert.equal(result, null)
+    assert.equal(calls[0].url, 'https://compose.example.test/api/compose/v0/project%20name')
+    assert.equal(calls[0].options.method, 'PUT')
+    assert.equal(calls[0].options.headers.get('Content-Type'), 'application/x-yaml')
+    assert.equal(calls[0].options.body, 'services: {}\n')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('propagates mesos-compose API errors with status and response text excluded', async () => {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = async () => ({ ok: false, status: 409, statusText: 'Conflict', text: async () => 'backend details' })
+  try {
+    await assert.rejects(request('/api/compose/v0/alpha/web/restart', { method: 'PUT' }, 'u:p', 'https://compose.example.test'), (error) => {
+      assert.equal(error.status, 409)
+      assert.equal(error.message, '409 Conflict')
+      return true
+    })
+  } finally {
+    globalThis.fetch = originalFetch
+  }
 })
