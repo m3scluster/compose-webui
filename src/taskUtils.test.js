@@ -153,14 +153,14 @@ test('updates deploy replicas in the existing Compose YAML', () => {
 test('reads YAML as text for scaling before submitting the updated project', async () => {
   const originalFetch = globalThis.fetch
   const calls = []
-  globalThis.fetch = async (url, options) => { calls.push({ url, options }); return { ok: true, text: async () => options.method === 'PUT' ? '' : 'services:\n  web:\n    image: nginx\n' } }
+  globalThis.fetch = async (url, options) => { calls.push({ url, options }); return { ok: true, text: async () => options.method === 'UPDATE' ? '' : 'services:\n  web:\n    image: nginx\n' } }
   try {
     const source = await requestText('/api/compose/v0/demo', { headers: { Accept: 'application/x-yaml' } }, 'u:p', 'https://compose.example.test')
     const yaml = scaleComposeYaml(source, 'web', 4)
-    await request('/api/compose/v0/demo', { method: 'PUT', headers: { 'Content-Type': 'application/x-yaml' }, body: yaml }, 'u:p', 'https://compose.example.test')
+    await request('/api/compose/v0/demo', { method: 'UPDATE', headers: { 'Content-Type': 'application/x-yaml' }, body: yaml }, 'u:p', 'https://compose.example.test')
     assert.equal(calls.length, 2)
     assert.equal(calls[0].url, 'https://compose.example.test/api/compose/v0/demo')
-    assert.equal(calls[1].options.method, 'PUT')
+    assert.equal(calls[1].options.method, 'UPDATE')
     assert.match(calls[1].options.body, /replicas: 4/)
   } finally {
     globalThis.fetch = originalFetch
