@@ -5,6 +5,17 @@ export const initialDeployForm = { project: '', application: '', image: '', cont
 const jsonObject = (text) => { if (!text.trim()) return undefined; return JSON.parse(text) }
 const textValue = (value) => value === undefined || value === null ? '' : typeof value === 'string' ? value : JSON.stringify(value, null, 2)
 
+const ensureTopLevelNetworks = (document, service) => {
+  const configured = document.networks && typeof document.networks === 'object' && !Array.isArray(document.networks) ? document.networks : {}
+  const names = new Set()
+  if (typeof service.network === 'string' && service.network.trim()) names.add(service.network.trim())
+  if (Array.isArray(service.networks)) service.networks.filter(name => typeof name === 'string' && name.trim()).forEach(name => names.add(name.trim()))
+  if (service.networks && typeof service.networks === 'object' && !Array.isArray(service.networks)) Object.keys(service.networks).forEach(name => { if (name.trim()) names.add(name) })
+  if (!names.size) return
+  document.networks = { ...configured }
+  names.forEach(name => { if (!(name in document.networks)) document.networks[name] = null })
+}
+
 export const buildComposeYaml = (form) => {
   const service = { image: form.image.trim(), command: form.command.trim() || undefined, arguments: form.args.trim() ? form.args.trim().split(/\s+/) : undefined, restart: form.restart || undefined, volumes: form.volumes.trim() ? form.volumes.split('\n').map(v => v.trim()).filter(Boolean) : undefined, environment: jsonObject(form.environment), hostname: form.hostname.trim() || undefined, container_name: form.containerName.trim() || undefined, container_type: form.containerType, shell: form.shell }
   Object.assign(service, { mesos: jsonObject(form.mesos), labels: jsonObject(form.labels), network_mode: form.networkMode.trim() && form.networkMode !== 'user' ? form.networkMode.trim() : undefined, network: form.network.trim() || undefined, networks: jsonObject(form.networks), gpus: jsonObject(form.gpus), ulimits: jsonObject(form.ulimits), healthcheck: jsonObject(form.healthcheck) })
@@ -14,6 +25,7 @@ export const buildComposeYaml = (form) => {
   if (ports.length) service.ports = ports.map(port => typeof port === 'string' ? port : `${port.source?.trim() ? `${port.source.trim()}:` : ''}${port.target}${port.protocol ? `/${port.protocol}` : ''}`).filter(Boolean)
   const document = { version: '3.9', services: { [form.application.trim()]: service } }
   if (form.topNetworks.trim()) document.networks = jsonObject(form.topNetworks)
+  ensureTopLevelNetworks(document, service)
   if (form.networkMode === 'user') {
     const networks = document.networks && typeof document.networks === 'object' ? document.networks : {}
     document.networks = { ...networks, default: { ...(networks.default || {}), external: true, driver: form.networkDriver.trim() || undefined } }

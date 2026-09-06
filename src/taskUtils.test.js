@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import YAML from 'yaml'
 import { request, requestText } from './api.js'
 import { buildComposeYaml, formFromYaml, initialDeployForm, scaleComposeYaml } from './deployYaml.js'
 import { deriveNames, formatMemory, formatTaskName, groupTasks, isFailed, isRunning, parseTaskName, taskCpu, taskId, taskMemory, taskState, validateTaskSegment } from './taskUtils.js'
@@ -203,6 +204,24 @@ test('prefills the network field with default and serializes it into the YAML', 
   assert.equal(initialDeployForm.network, 'default')
   const yaml = buildComposeYaml({ ...initialDeployForm, application: 'web', image: 'nginx' })
   assert.match(yaml, /\n    network: default/)
+  assert.match(yaml, /\nnetworks:\n  default:/)
+})
+
+test('adds top-level networks for service network aliases and preserves their configuration', () => {
+  const yaml = buildComposeYaml({
+    ...initialDeployForm,
+    application: 'app',
+    image: 'alpine:latest',
+    networks: JSON.stringify({ default: { aliases: ['test'] } }),
+    topNetworks: JSON.stringify({ default: { external: true, name: 'mesos-net', driver: 'mesos-net' } }),
+  })
+  assert.match(yaml, /    networks:\n      default:\n        aliases:\n          - test/)
+  assert.match(yaml, /\nnetworks:\n  default:\n    external: true\n    name: mesos-net\n    driver: mesos-net/)
+})
+
+test('adds each named service network to the top-level networks map', () => {
+  const yaml = buildComposeYaml({ ...initialDeployForm, application: 'web', image: 'nginx', network: 'frontend', networks: JSON.stringify({ backend: {} }) })
+  assert.deepEqual(YAML.parse(yaml).networks, { frontend: null, backend: null })
 })
 
 test('serializes user network mode as an external default network with its driver', () => {
