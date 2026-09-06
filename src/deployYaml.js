@@ -18,6 +18,15 @@ export const buildComposeYaml = (form) => {
   return YAML.stringify(document)
 }
 
+export const scaleComposeYaml = (source, serviceName, replicas) => {
+  if (!Number.isInteger(replicas) || replicas < 1) throw new Error('Replicas must be a whole number greater than 0')
+  const document = YAML.parse(source) || {}
+  const service = document.services?.[serviceName]
+  if (!service || typeof service !== 'object') throw new Error(`Service ${serviceName} was not found in the Compose YAML`)
+  service.deploy = { ...(service.deploy || {}), replicas }
+  return YAML.stringify(document)
+}
+
 export const formFromYaml = (source, current) => {
   const document = YAML.parse(source) || {}
   const names = Object.keys(document.services || {})

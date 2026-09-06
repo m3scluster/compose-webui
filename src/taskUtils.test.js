@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { request } from './api.js'
-import { buildComposeYaml, formFromYaml, initialDeployForm } from './deployYaml.js'
+import { request, requestText } from './api.js'
+import { buildComposeYaml, formFromYaml, initialDeployForm, scaleComposeYaml } from './deployYaml.js'
 import { deriveNames, formatMemory, formatTaskName, groupTasks, isFailed, isRunning, parseTaskName, taskCpu, taskId, taskMemory, taskState, validateTaskSegment } from './taskUtils.js'
 
 test('derives project and service from colon task names', () => {
@@ -140,17 +140,27 @@ test('propagates mesos-compose API errors with status and response text excluded
   }
 })
 
-test('sends the requested replica count to the service scaling endpoint', async () => {
+test('updates deploy replicas in the existing Compose YAML', () => {
+  const source = 'version: "3.9"\nservices:\n  web:\n    image: nginx\n    deploy:\n      replicas: 1\n      restart_policy:\n        condition: on-failure\n'
+  const scaled = scaleComposeYaml(source, 'web', 3)
+  const parsed = formFromYaml(scaled, initialDeployForm)
+  assert.equal(parsed.instances, '3')
+  assert.match(scaled, /condition: on-failure/)
+  assert.throws(() => scaleComposeYaml(source, 'missing', 3), /was not found/)
+})
+
+test('reads YAML as text for scaling before submitting the updated project', async () => {
   const originalFetch = globalThis.fetch
   const calls = []
-  globalThis.fetch = async (url, options) => { calls.push({ url, options }); return { ok: true, text: async () => '' } }
+  globalThis.fetch = async (url, options) => { calls.push({ url, options }); return { ok: true, text: async () => options.method === 'PUT' ? '' : 'services:\n  web:\n    image: nginx\n' } }
   try {
-    const result = await request('/api/compose/v0/demo/web/scale', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ replicas: 3 }) }, 'u:p', 'https://compose.example.test')
-    assert.equal(result, null)
-    assert.equal(calls[0].url, 'https://compose.example.test/api/compose/v0/demo/web/scale')
-    assert.equal(calls[0].options.method, 'PUT')
-    assert.equal(calls[0].options.headers.get('Content-Type'), 'application/json')
-    assert.equal(calls[0].options.body, '{"replicas":3}')
+    const source = await requestText('/api/compose/v0/demo', { headers: { Accept: 'application/x-yaml' } }, 'u:p', 'https://compose.example.test')
+    const yaml = scaleComposeYaml(source, 'web', 4)
+    await request('/api/compose/v0/demo', { method: 'PUT', headers: { 'Content-Type': 'application/x-yaml' }, body: yaml }, 'u:p', 'https://compose.example.test')
+    assert.equal(calls.length, 2)
+    assert.equal(calls[0].url, 'https://compose.example.test/api/compose/v0/demo')
+    assert.equal(calls[1].options.method, 'PUT')
+    assert.match(calls[1].options.body, /replicas: 4/)
   } finally {
     globalThis.fetch = originalFetch
   }

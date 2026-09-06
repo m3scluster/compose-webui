@@ -1,6 +1,6 @@
 export const apiEndpoint = (baseUrl, path) => `${baseUrl.replace(/\/$/, '')}${path}`
 
-export async function request(path, options = {}, auth = '', baseUrl = '') {
+async function requestBody(path, options = {}, auth = '', baseUrl = '', parse = (text) => text ? JSON.parse(text) : null) {
   const headers = new Headers(options.headers || {})
   if (auth) headers.set('Authorization', `Basic ${btoa(auth)}`)
   const res = await fetch(apiEndpoint(baseUrl, path), { ...options, headers })
@@ -10,5 +10,8 @@ export async function request(path, options = {}, auth = '', baseUrl = '') {
     throw error
   }
   const text = await res.text()
-  return text ? JSON.parse(text) : null
+  return parse(text)
 }
+
+export const request = (path, options = {}, auth = '', baseUrl = '') => requestBody(path, options, auth, baseUrl)
+export const requestText = (path, options = {}, auth = '', baseUrl = '') => requestBody(path, options, auth, baseUrl, (text) => text)
