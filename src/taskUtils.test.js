@@ -121,14 +121,15 @@ test('propagates mesos-compose API errors with status and response text excluded
 test('keeps form values visible in YAML and maps YAML edits back to the form', () => {
   const form = { ...initialDeployForm, project: 'demo', application: 'web', image: 'nginx:latest', command: 'nginx', args: '-g daemon off;', port: '8080:80/tcp', volumes: 'data:/var/lib/data' }
   const yaml = buildComposeYaml(form)
+  assert.equal(yaml.includes('name:'), false)
   const parsed = formFromYaml(yaml, initialDeployForm)
-  assert.equal(parsed.project, 'demo')
+  assert.equal(parsed.project, '')
   assert.equal(parsed.application, 'web')
   assert.equal(parsed.command, 'nginx')
   assert.equal(parsed.args, '-g daemon off;')
   assert.equal(parsed.port, '8080:80/tcp')
   assert.equal(parsed.volumes, 'data:/var/lib/data')
 
-  const edited = formFromYaml('name: edited\nservices:\n  api:\n    image: busybox:latest\n    command: [sh, -c, echo, ready]\n    ports:\n      - 9000:80/tcp\n', initialDeployForm)
-  assert.deepEqual({ project: edited.project, application: edited.application, image: edited.image, command: edited.command, args: edited.args, port: edited.port }, { project: 'edited', application: 'api', image: 'busybox:latest', command: 'sh', args: '-c echo ready', port: '9000:80/tcp' })
+  const edited = formFromYaml('services:\n  api:\n    image: busybox:latest\n    command: [sh, -c, echo, ready]\n    ports:\n      - 9000:80/tcp\n', { ...initialDeployForm, project: 'demo' })
+  assert.deepEqual({ project: edited.project, application: edited.application, image: edited.image, command: edited.command, args: edited.args, port: edited.port }, { project: 'demo', application: 'api', image: 'busybox:latest', command: 'sh', args: '-c echo ready', port: '9000:80/tcp' })
 })
