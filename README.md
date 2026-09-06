@@ -14,7 +14,7 @@ Open the printed local URL. Enter the backend Basic Auth credentials in the logi
 
 ## Configuration
 
-`VITE_API_BASE_URL` defaults to `https://mesoscompose.weave.local:10002`.
+`VITE_API_BASE_URL` defaults to `https://api.example.invalid:10002`; set it through the environment for the deployment.
 
 The backend routes used are:
 

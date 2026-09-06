@@ -1,6 +1,6 @@
 .PHONY: server serve build book book-serve deploy
 
-CLUSTERD_PROXY_TARGET ?= https://devtest.lab.internal:5050
+CLUSTERD_PROXY_TARGET ?= https://cluster.example.invalid:5050
 VERSION ?= 1.0.1
 MDBOOK := $(shell command -v mdbook 2>/dev/null)
 ifeq ($(MDBOOK),)
