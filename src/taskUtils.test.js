@@ -177,10 +177,21 @@ test('keeps form values visible in YAML and maps YAML edits back to the form', (
   assert.equal(parsed.command, 'nginx')
   assert.equal(parsed.args, '-g daemon off;')
   assert.equal(parsed.port, '8080:80/tcp')
-  assert.equal(parsed.volumes, 'data:/var/lib/data')
+  assert.deepEqual(parsed.volumes, [{ source: 'data', target: '/var/lib/data', permission: 'rw', driver: 'local' }])
 
   const edited = formFromYaml('services:\n  api:\n    image: busybox:latest\n    command: [sh, -c, echo, ready]\n    ports:\n      - 9000:80/tcp\n', { ...initialDeployForm, project: 'demo' })
   assert.deepEqual({ project: edited.project, application: edited.application, image: edited.image, command: edited.command, args: edited.args, port: edited.port }, { project: 'demo', application: 'api', image: 'busybox:latest', command: 'sh', args: '-c echo ready', port: '9000:80/tcp' })
+})
+
+test('serializes editable volumes with permissions and drivers', () => {
+  const yaml = buildComposeYaml({ ...initialDeployForm, application: 'app', image: 'busybox', volumes: [
+    { source: 'cache', target: '/var/cache', permission: 'ro', driver: 'local' },
+    { source: 'data', target: '/var/lib/data', permission: 'rw', driver: 'nfs' },
+  ] })
+  assert.match(yaml, /- cache:\/var\/cache:ro/)
+  assert.match(yaml, /- data:\/var\/lib\/data:rw/)
+  assert.match(yaml, /cache:\n    driver: local/)
+  assert.match(yaml, /data:\n    driver: nfs/)
 })
 
 test('serializes multiple ports with dynamic sources and mesos-compose protocols', () => {

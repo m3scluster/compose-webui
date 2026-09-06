@@ -1,9 +1,10 @@
 import YAML from 'yaml'
 
-export const initialDeployForm = { project: '', application: '', image: '', containerType: 'docker', command: '', args: '', restart: 'always', shell: false, instances: '1', constraints: [''], cpus: '0.5', memory: '128', disk: '0', port: '', ports: [], volumes: '', environment: '', hostname: '', containerName: '', networkMode: '', networkDriver: '', network: 'default', labels: '', mesos: '', networks: '', gpus: '', ulimits: '', healthcheck: '', runtime: '', placement: '', topNetworks: '', namedVolumes: '' }
+export const initialDeployForm = { project: '', application: '', image: '', containerType: 'docker', command: '', args: '', restart: 'always', shell: false, instances: '1', constraints: [''], cpus: '0.5', memory: '128', disk: '0', port: '', ports: [], volumes: [], environment: '', hostname: '', containerName: '', networkMode: '', networkDriver: '', network: 'default', labels: '', mesos: '', networks: '', gpus: '', ulimits: '', healthcheck: '', runtime: '', placement: '', topNetworks: '', namedVolumes: '' }
 
 const jsonObject = (text) => { if (!text.trim()) return undefined; return JSON.parse(text) }
 const textValue = (value) => value === undefined || value === null ? '' : typeof value === 'string' ? value : JSON.stringify(value, null, 2)
+const volumeRows = (value) => Array.isArray(value) ? value : String(value || '').split('\n').map(line => { const [source = '', target = '', permission = 'rw'] = line.trim().split(':'); return { source, target, permission, driver: 'local' } }).filter(row => row.source || row.target)
 
 const ensureTopLevelNetworks = (document, service) => {
   const configured = document.networks && typeof document.networks === 'object' && !Array.isArray(document.networks) ? document.networks : {}
@@ -17,7 +18,8 @@ const ensureTopLevelNetworks = (document, service) => {
 }
 
 export const buildComposeYaml = (form) => {
-  const service = { image: form.image.trim(), command: form.command.trim() || undefined, arguments: form.args.trim() ? form.args.trim().split(/\s+/) : undefined, restart: form.restart || undefined, volumes: form.volumes.trim() ? form.volumes.split('\n').map(v => v.trim()).filter(Boolean) : undefined, environment: jsonObject(form.environment), hostname: form.hostname.trim() || undefined, container_name: form.containerName.trim() || undefined, container_type: form.containerType, shell: form.shell }
+  const mounts = volumeRows(form.volumes).map(row => `${String(row.source || '').trim()}:${String(row.target || '').trim()}:${String(row.permission || 'rw').toLowerCase()}`).filter(row => !row.startsWith(':') && !row.endsWith('::'))
+  const service = { image: form.image.trim(), command: form.command.trim() || undefined, arguments: form.args.trim() ? form.args.trim().split(/\s+/) : undefined, restart: form.restart || undefined, volumes: mounts.length ? mounts : undefined, environment: jsonObject(form.environment), hostname: form.hostname.trim() || undefined, container_name: form.containerName.trim() || undefined, container_type: form.containerType, shell: form.shell }
   Object.assign(service, { mesos: jsonObject(form.mesos), labels: jsonObject(form.labels), network_mode: form.networkMode.trim() && form.networkMode !== 'user' ? form.networkMode.trim() : undefined, network: form.network.trim() || undefined, networks: jsonObject(form.networks), gpus: jsonObject(form.gpus), ulimits: jsonObject(form.ulimits), healthcheck: jsonObject(form.healthcheck) })
   const constraints = Array.isArray(form.constraints) ? form.constraints.map(value => value.trim()).filter(Boolean) : []
   const placement = jsonObject(form.placement) || {}
@@ -33,7 +35,10 @@ export const buildComposeYaml = (form) => {
     const networks = document.networks && typeof document.networks === 'object' ? document.networks : {}
     document.networks = { ...networks, default: { ...(networks.default || {}), external: true, driver: form.networkDriver.trim() || undefined } }
   }
-  if (form.namedVolumes.trim()) document.volumes = jsonObject(form.namedVolumes)
+  const namedVolumes = form.namedVolumes.trim() ? jsonObject(form.namedVolumes) : {}
+  const configuredVolumes = { ...namedVolumes }
+  volumeRows(form.volumes).forEach(row => { const source = String(row.source || '').trim(); if (source) configuredVolumes[source] = { ...(configuredVolumes[source] || {}), driver: String(row.driver || 'local').trim() || 'local' } })
+  if (Object.keys(configuredVolumes).length) document.volumes = configuredVolumes
   return YAML.stringify(document)
 }
 
@@ -57,5 +62,6 @@ export const formFromYaml = (source, current) => {
   const ports = portValues.map(port => { const match = String(port).match(/^(?:(\d+):)?(\d+)(?:\/(tcp|udp|http|https|h2c|wss))?$/); return match ? { source: match[1] || '', target: match[2], protocol: match[3] || 'tcp' } : { source: '', target: String(port), protocol: 'tcp' } })
   const userNetwork = document.networks?.default
   const networkMode = userNetwork?.external === true && userNetwork?.driver ? 'user' : textValue(service.network_mode)
-  return { ...current, application: name, image: textValue(service.image), containerType: service.container_type || 'docker', command: command[0] || '', args: command.slice(1).join(' '), restart: textValue(service.restart), shell: Boolean(service.shell), instances: textValue(service.deploy?.replicas ?? 1), constraints: Array.isArray(service.deploy?.placement?.constraints) ? service.deploy.placement.constraints.map(String) : [''], cpus: textValue(limits.cpus ?? '0.5'), memory: textValue(limits.memory ?? '128'), disk: textValue(limits.disk ?? '0'), port: ports[0] ? `${ports[0].source ? `${ports[0].source}:` : ''}${ports[0].target}/${ports[0].protocol}` : '', ports, volumes: Array.isArray(service.volumes) ? service.volumes.join('\n') : '', environment: textValue(service.environment), hostname: textValue(service.hostname), containerName: textValue(service.container_name), mesos: textValue(service.mesos), labels: textValue(service.labels), networkMode, networkDriver: userNetwork?.driver || '', network: textValue(service.network), networks: textValue(service.networks), gpus: textValue(service.gpus), ulimits: textValue(service.ulimits), healthcheck: textValue(service.healthcheck), runtime: textValue(service.deploy?.runtime), placement: textValue(service.deploy?.placement), topNetworks: textValue(document.networks), namedVolumes: textValue(document.volumes) }
+  const parsedVolumes = (Array.isArray(service.volumes) ? service.volumes : service.volumes ? [service.volumes] : []).map(volume => { const [source = '', target = '', permission = 'rw'] = String(volume).split(':'); return { source, target, permission: permission.toLowerCase(), driver: textValue(document.volumes?.[source]?.driver || 'local') } })
+  return { ...current, application: name, image: textValue(service.image), containerType: service.container_type || 'docker', command: command[0] || '', args: command.slice(1).join(' '), restart: textValue(service.restart), shell: Boolean(service.shell), instances: textValue(service.deploy?.replicas ?? 1), constraints: Array.isArray(service.deploy?.placement?.constraints) ? service.deploy.placement.constraints.map(String) : [''], cpus: textValue(limits.cpus ?? '0.5'), memory: textValue(limits.memory ?? '128'), disk: textValue(limits.disk ?? '0'), port: ports[0] ? `${ports[0].source ? `${ports[0].source}:` : ''}${ports[0].target}/${ports[0].protocol}` : '', ports, volumes: parsedVolumes, environment: textValue(service.environment), hostname: textValue(service.hostname), containerName: textValue(service.container_name), mesos: textValue(service.mesos), labels: textValue(service.labels), networkMode, networkDriver: userNetwork?.driver || '', network: textValue(service.network), networks: textValue(service.networks), gpus: textValue(service.gpus), ulimits: textValue(service.ulimits), healthcheck: textValue(service.healthcheck), runtime: textValue(service.deploy?.runtime), placement: textValue(service.deploy?.placement), topNetworks: textValue(document.networks), namedVolumes: textValue(document.volumes) }
 }
