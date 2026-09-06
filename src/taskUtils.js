@@ -1,9 +1,49 @@
+export class TaskNameValidationError extends Error {
+  constructor(code, message, field = '') {
+    super(message)
+    this.name = 'TaskNameValidationError'
+    this.code = code
+    this.field = field
+  }
+}
+
+const TASK_SEGMENT_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
+
+export const validateTaskSegment = (value, field) => {
+  if (typeof value !== 'string') throw new TaskNameValidationError('TASK_NAME_NOT_STRING', `${field} must be a string`, field)
+  if (!value) throw new TaskNameValidationError('TASK_NAME_EMPTY_SEGMENT', `${field} must not be empty`, field)
+  if (!/^[A-Za-z0-9]/.test(value)) throw new TaskNameValidationError('TASK_NAME_INVALID_SEGMENT_START', `${field} must start with a letter or digit`, field)
+  if (!TASK_SEGMENT_PATTERN.test(value)) throw new TaskNameValidationError('TASK_NAME_INVALID_CHARACTERS', `${field} contains invalid characters`, field)
+}
+
+export const parseTaskName = (value, options = {}) => {
+  if (typeof value !== 'string') throw new TaskNameValidationError('TASK_NAME_NOT_STRING', 'Task name must be a string', 'taskName')
+  const bits = value.split(':')
+  if (bits.length === 3) {
+    validateTaskSegment(bits[0], 'framework')
+    validateTaskSegment(bits[1], 'project')
+    validateTaskSegment(bits[2], 'task')
+    return { framework: bits[0], project: bits[1], task: bits[2] }
+  }
+  if (options.strict) throw new TaskNameValidationError('TASK_NAME_SEGMENT_COUNT', 'Task name must contain exactly three segments', 'taskName')
+  return { legacy: true, raw: value, project: 'default', task: value }
+}
+
+export const formatTaskName = ({ framework, project, task } = {}) => {
+  validateTaskSegment(framework, 'framework')
+  validateTaskSegment(project, 'project')
+  validateTaskSegment(task, 'task')
+  return `${framework}:${project}:${task}`
+}
+
 export const deriveNames = (taskName = '') => {
   const raw = String(taskName)
-  const bits = raw.split(':').filter(Boolean)
-  if (bits.length >= 3) return { project: bits[bits.length - 2], service: bits[bits.length - 1] }
-  const unders = raw.split('_').filter(Boolean)
-  return { project: unders.length > 1 ? unders[0] : 'default', service: unders.length > 1 ? unders.slice(1).join('_') : (raw || 'unknown') }
+  try {
+    const parsed = parseTaskName(raw)
+    return { project: parsed.project, service: parsed.task || 'unknown', ...(parsed.legacy ? { legacy: true, raw } : {}) }
+  } catch {
+    return { project: 'default', service: raw || 'unknown', invalid: true, raw }
+  }
 }
 
 const valueFrom = (task, ...names) => names.map((name) => task?.[name]).find((value) => value !== undefined && value !== null && value !== '')
