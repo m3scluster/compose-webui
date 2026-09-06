@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { request } from './api.js'
 import { buildComposeYaml, formFromYaml, initialDeployForm } from './deployYaml.js'
-import { deriveNames, formatMemory, formatTaskName, groupTasks, isFailed, isRunning, parseTaskName, taskCpu, taskMemory, taskState, validateTaskSegment } from './taskUtils.js'
+import { deriveNames, formatMemory, formatTaskName, groupTasks, isFailed, isRunning, parseTaskName, taskCpu, taskId, taskMemory, taskState, validateTaskSegment } from './taskUtils.js'
 
 test('derives project and service from colon task names', () => {
   assert.deepEqual(deriveNames('compose:billing:api.abc.0'), { project: 'billing', service: 'api.abc.0' })
@@ -36,6 +36,12 @@ test('normalizes states and memory', () => {
   assert.equal(isFailed({ state: 'TASK_FAILED' }), true)
   assert.equal(formatMemory(2048), '2.0 GB')
   assert.equal(formatMemory('bad'), '0 MB')
+})
+
+test('reads task IDs from the API field variants', () => {
+  assert.equal(taskId({ task_id: 'snake-case' }), 'snake-case')
+  assert.equal(taskId({ TaskID: 'protobuf-json' }), 'protobuf-json')
+  assert.equal(taskId({ id: 'generic-id' }), 'generic-id')
 })
 
 test('reads Mesos Compose exported field names and resource objects', () => {

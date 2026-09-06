@@ -48,6 +48,8 @@ export const deriveNames = (taskName = '') => {
 
 const valueFrom = (task, ...names) => names.map((name) => task?.[name]).find((value) => value !== undefined && value !== null && value !== '')
 
+export const taskId = (task) => valueFrom(task, 'task_id', 'taskId', 'TaskID', 'TaskId', 'id', 'ID')
+
 export const taskState = (task) => {
   const status = valueFrom(task, 'state', 'State', 'status', 'Status')
   return String(status?.state || status?.State || status || '').toUpperCase()
