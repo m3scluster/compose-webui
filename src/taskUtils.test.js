@@ -207,6 +207,21 @@ test('prefills the network field with default and serializes it into the YAML', 
   assert.match(yaml, /\nnetworks:\n  default:/)
 })
 
+test('serializes deploy replicas and repeatable placement constraints', () => {
+  const yaml = buildComposeYaml({ ...initialDeployForm, application: 'web', image: 'nginx', instances: '3', constraints: ['node.hostname==localhost', 'node.platform.os==linux', ''] })
+  assert.deepEqual(YAML.parse(yaml).services.web.deploy, {
+    placement: { constraints: ['node.hostname==localhost', 'node.platform.os==linux'] },
+    replicas: 3,
+    resources: { limits: { cpus: 0.5, memory: 128, disk: 0 } },
+  })
+})
+
+test('reads deploy replicas and placement constraints into the form', () => {
+  const form = formFromYaml('services:\n  web:\n    image: nginx\n    deploy:\n      placement:\n        constraints:\n          - node.hostname==localhost\n          - unique\n      replicas: 4\n', initialDeployForm)
+  assert.equal(form.instances, '4')
+  assert.deepEqual(form.constraints, ['node.hostname==localhost', 'unique'])
+})
+
 test('adds top-level networks for service network aliases and preserves their configuration', () => {
   const yaml = buildComposeYaml({
     ...initialDeployForm,
