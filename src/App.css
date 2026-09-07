@@ -5,6 +5,8 @@
 /* Keep the dashboard and its footer aligned with the full main column. */
 .content{max-width:none}
 .app-footer{width:100%;margin-top:auto}
+.brand img{display:block;width:172px;height:auto}
+.login-logo{display:block;width:220px;max-width:100%;height:auto;margin-bottom:4px}
 
 .deploy-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}
 .deploy-fields .deploy-wide{grid-column:1/-1}
