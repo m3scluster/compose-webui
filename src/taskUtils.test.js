@@ -300,6 +300,7 @@ test('keeps deploy form controls and YAML documentation guidance visible', () =>
   assert.doesNotMatch(source, /(?:legend|className)=['"][^'"]*advanced/i)
   assert.match(source, /field\('Restart policy', 'restart'/)
   for (const removed of ['networks', 'topNetworks', 'Named volume definitions', 'GPUs', 'Environment variables', 'Labels', 'Mesos options', 'Ulimits', 'Healthcheck', 'Placement']) assert.doesNotMatch(source, new RegExp(removed))
+  for (const removed of ["field('Hostname'", "field('Container name'", "field('Runtime'"]) assert.equal(source.includes(removed), false)
   assert.match(source, /YAML editor/i)
   assert.match(source, /https:\/\/aventer-ug\.github\.io\/mesos-compose\//)
 })
