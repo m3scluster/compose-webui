@@ -318,11 +318,11 @@ test('keeps deploy form controls and YAML documentation guidance visible', () =>
   assert.match(source, /https:\/\/aventer-ug\.github\.io\/mesos-compose\//)
 })
 
-test('does not advertise an unsupported task YAML read-back editor', () => {
+test('hides the task YAML editor until the Edit button is clicked', () => {
   const source = readFileSync(new URL('./App.jsx', import.meta.url), 'utf8')
-  assert.doesNotMatch(source, /requestText\(/)
-  assert.doesNotMatch(source, /yaml-task-editor/)
-  assert.doesNotMatch(source, /showYamlEditor/)
+  assert.match(source, /showYamlEditor.*useState\(false\)/)
+  assert.match(source, /showYamlEditor && <section className="yaml-task-editor">/)
+  assert.match(source, /setShowYamlEditor\(\(visible\) => !visible\).*Edit/)
 })
 
 test('keeps network name beside network mode in the deploy form', () => {

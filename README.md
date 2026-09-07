@@ -23,7 +23,7 @@ The backend routes used are:
 - `DELETE /api/compose/v0/tasks/:taskid`
 - `DELETE /api/compose/v0/:project/:service`
 - `PUT /api/compose/v0/:project/:service/restart`
-- `PUT /api/compose/v0/:project` (YAML body)
+- `GET /api/compose/v0/:project` / `PUT /api/compose/v0/:project` (YAML body; scaling updates `services.<service>.deploy.replicas`)
 
 ## Production build
 
@@ -33,3 +33,9 @@ npm run preview
 ```
 
 The generated static artifact is in `dist/`. If the API uses a self-signed certificate, the browser must trust that certificate; the frontend does not disable TLS verification.
+
+## screenshots
+
+![clipboard_20260907172630.bmp](vx_images/clipboard_20260907172630.bmp)
+![clipboard_20260907171851.bmp](vx_images/clipboard_20260907171851.bmp)
+![clipboard_20260907172656.bmp](vx_images/clipboard_20260907172656.bmp)
