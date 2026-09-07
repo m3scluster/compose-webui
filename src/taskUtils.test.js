@@ -46,6 +46,19 @@ test('reads task IDs from the API field variants', () => {
   assert.equal(taskId({ id: 'generic-id' }), 'generic-id')
 })
 
+test('targets one task instance with the encoded task ID endpoint', async () => {
+  const originalFetch = globalThis.fetch
+  const calls = []
+  globalThis.fetch = async (url, options) => { calls.push({ url, options }); return { ok: true, text: async () => '' } }
+  try {
+    await request(`/api/compose/v0/tasks/${encodeURIComponent('task/id with spaces')}`, { method: 'DELETE' }, 'u:p', 'https://compose.example.test')
+    assert.equal(calls[0].url, 'https://compose.example.test/api/compose/v0/tasks/task%2Fid%20with%20spaces')
+    assert.equal(calls[0].options.method, 'DELETE')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
 test('reads Mesos Compose exported field names and resource objects', () => {
   const task = { State: 'TASK_RUNNING', CPU: 0.5, Memory: 128 }
   assert.equal(taskState(task), 'TASK_RUNNING')
