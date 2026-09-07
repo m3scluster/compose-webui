@@ -44,13 +44,19 @@
 .modal{width:min(860px,100%)}
 @media(max-width:620px){.modal{width:100%;max-width:none}}
 
-/* Keep the persistent sidebar utilities in a slim rail while the overview uses the full workspace. */
-@media(min-width:761px){
-  aside{width:75px;padding:25px 15px;overflow:hidden}
-  .brand{padding:0 3px 34px;width:45px;overflow:hidden}
-  .brand img{width:172px;max-width:none}
-  .side-bottom{padding:0;align-items:center}
-  .agent-status{padding:10px 8px}
-  .agent-status-label,.agent-status-value span:last-child,.profile-copy,.profile-key{display:none}
-  .profile{justify-content:center}
+/* The navigation/sidebar is intentionally reduced to a utility rail: only the
+   connection indicator and current user remain there. The full wordmark lives
+   in the header so it is never clipped by the rail. */
+aside{width:86px;padding:25px 15px;overflow:hidden}
+.brand{display:none}
+.side-bottom{padding:0;align-items:center}
+.agent-status{padding:10px 8px}
+.agent-status-label,.agent-status-value span:last-child,.profile-copy,.profile-key{display:none}
+.profile{justify-content:center}
+.topbar-brand{display:flex;align-items:center;flex:none;margin-right:24px}
+.topbar-brand img{display:block;width:172px;height:auto}
+@media(max-width:760px){
+  aside{width:58px;padding:18px 8px}
+  .topbar-brand{margin-right:12px}
+  .topbar-brand img{width:145px}
 }
