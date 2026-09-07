@@ -60,3 +60,6 @@ aside{width:86px;padding:25px 15px;overflow:hidden}
   .topbar-brand{margin-right:12px}
   .topbar-brand img{width:145px}
 }
+
+/* The dashboard has no persistent navigation rail. */
+aside{display:none}
