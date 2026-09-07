@@ -3,6 +3,7 @@ import { Activity, Box, ChevronRight, Cpu, Database, KeyRound, Menu, Play, Refre
 import { request, requestText } from './api.js'
 import { buildComposeYaml, formFromYaml, initialDeployForm, scaleComposeYaml } from './deployYaml.js'
 import { deriveNames, formatMemory, groupTasks, isFailed, isRunning, taskCpu, taskId, taskMemory, taskState, validateTaskSegment } from './taskUtils.js'
+import { highlightYaml } from './yamlHighlight.js'
 import './App.css'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://api.example.invalid:10002'
@@ -20,15 +21,6 @@ function Metric({ icon: Icon, label, value, accent }) { return <div className="m
 
 function LoginScreen({ login, setLogin, onSubmit, error }) { return <div className="login-screen"><form className="login-card" onSubmit={onSubmit}><img className="login-logo" src="/mesos-compose-logo.svg" alt="Mesos Compose"/><h1>Anmelden</h1><p className="muted">Melde dich mit deinen Mesos-API-Zugangsdaten an.</p><label>Benutzername<input name="username" autoComplete="username" value={login.user} onChange={e => setLogin({...login, user: e.target.value})} required autoFocus/></label><label>Passwort<input name="password" type="password" autoComplete="current-password" value={login.pass} onChange={e => setLogin({...login, pass: e.target.value})} required/></label>{error && <div className="form-error" role="alert">{error}</div>}<button className="button primary" type="submit">Anmelden</button><small>Die Anmeldung bleibt nach einem F5 erhalten und wird erst beim Löschen der Browserdaten entfernt.</small></form></div> }
 
-const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character])
-export const highlightYaml = (source) => String(source).split('\n').map((line) => {
-  const escaped = escapeHtml(line)
-  const commentIndex = escaped.indexOf('#')
-  const content = commentIndex >= 0 ? escaped.slice(0, commentIndex) : escaped
-  const comment = commentIndex >= 0 ? `<span class="yaml-token-comment">${escaped.slice(commentIndex)}</span>` : ''
-  const highlighted = content.replace(/^(\s*)([-?]?\s*[\w.-]+)(:)/, '$1<span class="yaml-token-key">$2</span>$3').replace(/(:\s*)(["']?[^\s,}\]]+["']?)(\s*)$/, '$1<span class="yaml-token-value">$2</span>$3')
-  return `${highlighted}${comment}`
-}).join('\n')
 
 function TaskDetails({ task, auth, onClose, onDone }) {
   const names = deriveNames(task.task_name || task.taskName)
