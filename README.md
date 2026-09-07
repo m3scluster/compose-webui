@@ -19,6 +19,7 @@ Open the printed local URL. Enter the backend Basic Auth credentials in the logi
 The backend routes used are:
 
 - `GET /api/compose/v0/tasks`
+- `GET /api/compose/v0/events` (plain-text event stream)
 - `DELETE /api/compose/v0/tasks/:taskid`
 - `DELETE /api/compose/v0/:project/:service`
 - `PUT /api/compose/v0/:project/:service/restart`
