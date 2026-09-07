@@ -39,3 +39,14 @@
 @media(max-width:760px){.side-bottom{padding:0 0 4px;align-items:center}.agent-status{padding:10px 8px}.agent-status-label{display:none}.agent-status-value span:last-child,.profile-copy,.profile-key{display:none}.profile{justify-content:center}.profile-avatar{width:30px;height:30px}}
 .events-page{padding:42px;display:flex;flex-direction:column;gap:24px;min-height:calc(100vh - 70px)}.events-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}.events-heading h1{margin:4px 0 6px}.events-heading .button{margin-top:8px}.events-panel{background:#fff;border:1px solid #e7ebf3;border-radius:9px;overflow:hidden;box-shadow:0 5px 18px #1f31500a}.events-panel .panel-head{padding:20px 23px;border-bottom:1px solid #e7ebf3}.events-panel .panel-head h2{margin:0 0 4px}.events-output{margin:0;padding:22px;min-height:420px;max-height:calc(100vh - 280px);overflow:auto;background:#111b32;color:#d7deed;font:12px/1.6 'Space Mono',monospace;white-space:pre-wrap;overflow-wrap:anywhere}.content-hidden{display:none}
 @media(max-width:760px){.events-page{padding:25px 18px}.events-heading{flex-direction:column}.events-heading .button{margin-top:0}.events-output{min-height:320px;max-height:none}}
+
+/* Keep the persistent sidebar utilities in a slim rail while the overview uses the full workspace. */
+@media(min-width:761px){
+  aside{width:75px;padding:25px 15px;overflow:hidden}
+  .brand{padding:0 3px 34px;width:45px;overflow:hidden}
+  .brand img{width:172px;max-width:none}
+  .side-bottom{padding:0;align-items:center}
+  .agent-status{padding:10px 8px}
+  .agent-status-label,.agent-status-value span:last-child,.profile-copy,.profile-key{display:none}
+  .profile{justify-content:center}
+}
