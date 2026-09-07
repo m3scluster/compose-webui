@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="220" height="48" viewBox="0 0 220 48" role="img" aria-labelledby="title desc">
   <title id="title">Mesos Compose</title>
-  <desc id="desc">Mesos Compose logo with a mint M mark and white wordmark</desc>
+  <desc id="desc">Mesos Compose logo with a mint M mark and dark wordmark</desc>
   <rect width="40" height="40" x="0" y="4" rx="10" fill="#38CDA3"/>
   <path d="M11 31V17h3.2l5.8 8.1 5.8-8.1H29v14h-3.5v-8.7l-4.2 6h-1.1l-4.2-6V31H11Z" fill="#101C32"/>
-  <text x="53" y="24" fill="#FFFFFF" font-family="DM Sans, Arial, sans-serif" font-size="17" font-weight="700" letter-spacing="-.35">Mesos</text>
+  <text x="53" y="24" fill="#17233B" font-family="DM Sans, Arial, sans-serif" font-size="17" font-weight="700" letter-spacing="-.35">Mesos</text>
   <text x="54" y="38" fill="#93A1BB" font-family="DM Sans, Arial, sans-serif" font-size="8" font-weight="600" letter-spacing="2.5">COMPOSE</text>
 </svg>
