@@ -53,14 +53,14 @@ aside{width:86px;padding:25px 15px;overflow:hidden}
 .agent-status{padding:10px 8px}
 .agent-status-label,.agent-status-value span:last-child,.profile-copy,.profile-key{display:none}
 .profile{justify-content:center}
-.topbar-brand{display:flex;align-items:center;flex:none;margin-right:32px}
+.topbar-brand{display:flex;align-items:center;flex:none;margin-right:6px}
 .topbar-brand img{display:block;width:172px;height:auto}
 .topbar{justify-content:flex-start}
 .crumb{flex:none}
 .top-actions{margin-left:auto}
 @media(max-width:760px){
   aside{width:58px;padding:18px 8px}
-  .topbar-brand{margin-right:18px}
+  .topbar-brand{margin-right:6px}
   .topbar-brand img{width:145px}
 }
 
