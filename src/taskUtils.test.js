@@ -303,3 +303,9 @@ test('keeps deploy form controls and YAML documentation guidance visible', () =>
   assert.match(source, /YAML editor/i)
   assert.match(source, /https:\/\/aventer-ug\.github\.io\/mesos-compose\//)
 })
+
+test('keeps network name beside network mode in the deploy form', () => {
+  const source = readFileSync(new URL('./App.jsx', import.meta.url), 'utf8')
+  assert.match(source, /network-controls.*Mode<select[\s\S]*?field\('Network name', 'network'\)/)
+  assert.doesNotMatch(source, /<legend>Network configuration<\/legend>/)
+})
