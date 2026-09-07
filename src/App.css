@@ -24,7 +24,7 @@
 .yaml-editor-shell textarea{max-height:none;min-height:0}
 
 .side-bottom{gap:18px;padding:0 10px 4px}
-.agent-status{border:1px solid #2c3040;border-radius:11px;padding:13px 13px 12px;background:#171720}
+.agent-status{padding:13px 13px 12px}
 .agent-status-label{color:#727487;font-size:9px;letter-spacing:.45px;line-height:1;margin-bottom:9px}
 .agent-status-value{display:flex;align-items:center;gap:11px;color:#fff;font-size:13px}
 .agent-status-value .dot{width:8px;height:8px;flex:none}
