@@ -50,9 +50,38 @@ const valueFrom = (task, ...names) => names.map((name) => task?.[name]).find((va
 
 export const taskId = (task) => valueFrom(task, 'task_id', 'taskId', 'TaskID', 'TaskId', 'id', 'ID')
 
+export const taskAgentHostname = (task) => {
+  const agent = valueFrom(task, 'agent', 'Agent')
+  const agentInfo = valueFrom(task, 'MesosAgent', 'mesos_agent', 'mesosAgent', 'agent_info', 'agentInfo', 'agent_data', 'agentData') || (typeof agent === 'object' ? valueFrom(agent, 'agent_info', 'agentInfo', 'info') : undefined)
+  const hostname = valueFrom(agentInfo, 'hostname', 'Hostname', 'host') || valueFrom(task, 'agent_hostname', 'agentHostname', 'agent_host', 'agentHost') || (typeof agent === 'object' ? valueFrom(agent, 'hostname', 'Hostname', 'host') : undefined)
+  return String(hostname || '—')
+}
+
 export const taskState = (task) => {
   const status = valueFrom(task, 'state', 'State', 'status', 'Status')
   return String(status?.state || status?.State || status || '').toUpperCase()
+}
+export const taskHealth = (task) => {
+  const health = valueFrom(task, 'health', 'Health', 'health_status', 'healthStatus')
+  return String(health?.status || health?.Status || health || '—').toUpperCase()
+}
+export const taskNetworkName = (task) => {
+  const direct = valueFrom(task, 'network', 'network_name', 'networkName', 'Network')
+  if (direct) return String(direct)
+  const infos = valueFrom(task, 'networkinfo', 'networkInfo')
+  return Array.isArray(infos) ? infos.map((info) => info?.name).filter(Boolean).join(', ') || '—' : '—'
+}
+export const taskNetworkMode = (task) => String(valueFrom(task, 'network_mode', 'networkMode', 'NetworkMode', 'mode') || '—')
+export const taskVolumes = (task) => {
+  const volumes = valueFrom(task, 'volumes', 'Volumes', 'volume')
+  if (!Array.isArray(volumes)) return volumes ? String(volumes) : '—'
+  return volumes.map((volume) => {
+    if (typeof volume === 'string') return volume
+    const source = volume?.source || volume?.Source || volume?.host_path || volume?.hostPath || ''
+    const target = volume?.target || volume?.Target || volume?.container_path || volume?.containerPath || ''
+    const mode = volume?.permission || volume?.mode || volume?.Mode || ''
+    return [source, target, mode].filter(Boolean).join(':') || JSON.stringify(volume)
+  }).join(', ') || '—'
 }
 export const isRunning = (task) => ['TASK_RUNNING', 'RUNNING', 'TASK_STARTING', 'STARTING'].includes(taskState(task))
 export const isFailed = (task) => ['TASK_FAILED', 'FAILED', 'TASK_ERROR', 'ERROR', 'TASK_LOST'].includes(taskState(task))
@@ -84,5 +113,26 @@ export const groupTasks = (tasks = []) => {
     ...group,
     representative: group.tasks[0],
     state: group.running > 0 ? 'TASK_RUNNING' : group.failed > 0 ? 'TASK_FAILED' : taskState(group.tasks[0]),
+  }))
+}
+
+export const groupProjects = (tasks = []) => {
+  const projects = new Map()
+  for (const service of groupTasks(tasks)) {
+    let project = projects.get(service.project)
+    if (!project) {
+      project = { key: `project:${service.project}`, project: service.project, services: [], taskCount: 0, running: 0, failed: 0, cpu: 0, memory: 0 }
+      projects.set(service.project, project)
+    }
+    project.services.push(service)
+    project.taskCount += service.taskCount
+    project.running += service.running
+    project.failed += service.failed
+    project.cpu += service.cpu
+    project.memory += service.memory
+  }
+  return [...projects.values()].map((project) => ({
+    ...project,
+    state: project.running > 0 ? 'TASK_RUNNING' : project.failed > 0 ? 'TASK_FAILED' : project.services[0]?.state || '',
   }))
 }

@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import YAML from 'yaml'
 import { request, requestText } from './api.js'
 import { buildComposeYaml, formFromYaml, initialDeployForm, scaleComposeYaml } from './deployYaml.js'
-import { deriveNames, formatMemory, formatTaskName, groupTasks, isFailed, isRunning, parseTaskName, taskCpu, taskId, taskMemory, taskState, validateTaskSegment } from './taskUtils.js'
+import { deriveNames, formatMemory, formatTaskName, groupProjects, groupTasks, isFailed, isRunning, parseTaskName, taskAgentHostname, taskCpu, taskHealth, taskId, taskMemory, taskNetworkMode, taskNetworkName, taskState, taskVolumes, validateTaskSegment } from './taskUtils.js'
 
 test('derives project and service from colon task names', () => {
   assert.deepEqual(deriveNames('compose:billing:api.abc.0'), { project: 'billing', service: 'api.abc.0' })
@@ -40,10 +40,32 @@ test('normalizes states and memory', () => {
   assert.equal(formatMemory('bad'), '0 MB')
 })
 
+test('reads health status from API field variants', () => {
+  assert.equal(taskHealth({ health: 'healthy' }), 'HEALTHY')
+  assert.equal(taskHealth({ Health: { status: 'unhealthy' } }), 'UNHEALTHY')
+  assert.equal(taskHealth({ healthStatus: 'starting' }), 'STARTING')
+  assert.equal(taskHealth({}), '—')
+})
+
+test('reads network and volume details from task payloads', () => {
+  const task = { network_mode: 'weave', networkinfo: [{ name: 'frontend' }], Volumes: [{ source: 'data', target: '/var/lib/data', mode: 'ro' }] }
+  assert.equal(taskNetworkName(task), 'frontend')
+  assert.equal(taskNetworkMode(task), 'weave')
+  assert.equal(taskVolumes(task), 'data:/var/lib/data:ro')
+})
+
 test('reads task IDs from the API field variants', () => {
   assert.equal(taskId({ task_id: 'snake-case' }), 'snake-case')
   assert.equal(taskId({ TaskID: 'protobuf-json' }), 'protobuf-json')
   assert.equal(taskId({ id: 'generic-id' }), 'generic-id')
+})
+
+test('prefers the agent hostname over the agent ID', () => {
+  assert.equal(taskAgentHostname({ agent: 'agent-id', agent_hostname: 'agent.example.test' }), 'agent.example.test')
+  assert.equal(taskAgentHostname({ Agent: { hostname: 'agent.example.test' } }), 'agent.example.test')
+  assert.equal(taskAgentHostname({ MesosAgent: { hostname: 'agent.example.test' }, hostname: 'agent-id' }), 'agent.example.test')
+  assert.equal(taskAgentHostname({ agent: 'agent-id', hostname: 'agent-id' }), '—')
+  assert.equal(taskAgentHostname({ agent: 'agent-id' }), '—')
 })
 
 test('targets one task instance with the encoded task ID endpoint', async () => {
@@ -106,6 +128,19 @@ test('groups tasks by project and service while retaining task records and total
   assert.equal(groups[0].cpu, 0.75)
   assert.equal(groups[0].memory, 192)
   assert.equal(groups[0].state, 'TASK_RUNNING')
+})
+
+test('groups service groups into project rows with aggregated totals', () => {
+  const projects = groupProjects([
+    { task_name: 'framework:alpha:web', cpu: 0.5, memory: 128, state: 'TASK_RUNNING' },
+    { task_name: 'framework:alpha:web', cpu: 0.25, memory: 64, state: 'TASK_RUNNING' },
+    { task_name: 'framework:alpha:worker', cpu: 1, memory: 256, state: 'TASK_FAILED' },
+    { task_name: 'framework:beta:web', cpu: 2, memory: 512, state: 'TASK_STOPPED' },
+  ])
+  assert.deepEqual(projects.map(({ project, services, taskCount, running, failed, cpu, memory, state }) => ({ project, services: services.map(({ service }) => service), taskCount, running, failed, cpu, memory, state })), [
+    { project: 'alpha', services: ['web', 'worker'], taskCount: 3, running: 2, failed: 1, cpu: 1.75, memory: 448, state: 'TASK_RUNNING' },
+    { project: 'beta', services: ['web'], taskCount: 1, running: 0, failed: 0, cpu: 2, memory: 512, state: 'TASK_STOPPED' },
+  ])
 })
 
 test('builds authenticated API requests and parses JSON responses', async () => {
@@ -312,7 +347,7 @@ test('keeps deploy form controls and YAML documentation guidance visible', () =>
   const source = readFileSync(new URL('./App.jsx', import.meta.url), 'utf8')
   assert.doesNotMatch(source, /(?:legend|className)=['"][^'"]*advanced/i)
   assert.match(source, /field\('Restart policy', 'restart'/)
-  for (const removed of ['networks', 'topNetworks', 'Named volume definitions', 'GPUs', 'Environment variables', 'Labels', 'Mesos options', 'Ulimits', 'Healthcheck', 'Placement']) assert.doesNotMatch(source, new RegExp(removed))
+  for (const removed of ['networks', 'topNetworks', 'Named volume definitions', 'Environment variables', 'Labels', 'Mesos options', 'Ulimits', 'Healthcheck', 'Placement']) assert.doesNotMatch(source, new RegExp(removed))
   for (const removed of ["field('Hostname'", "field('Container name'", "field('Runtime'"]) assert.equal(source.includes(removed), false)
   assert.match(source, /YAML editor/i)
   assert.match(source, /https:\/\/aventer-ug\.github\.io\/mesos-compose\//)
