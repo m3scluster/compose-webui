@@ -55,6 +55,8 @@ test('reads network and volume details from task payloads', () => {
   assert.equal(taskVolumes({ Volumes: { data: '/var/lib/data' } }), 'data:/var/lib/data')
   assert.equal(taskVolumes({ Volumes: { data: { target: '/var/lib/data', mode: 'ro' } } }), 'data:/var/lib/data:ro')
   assert.equal(taskVolumes({ Volumes: { source: { name: 'cache' }, target: '/data', mode: 1 } }), 'cache:/data:1')
+  assert.equal(taskVolumes({ Volumes: { source: { type: 1, docker_volume: { driver: 'rexray', name: 'avmatrixeu' } }, target: '/data', mode: 1 } }), 'driver: rexray · source: avmatrixeu → target: /data · RW')
+  assert.equal(taskVolumes({ Volumes: { type: 1, docker_volume: { driver: 'rexray', name: 'avmatrixeu' }, target: '/data', mode: 0 } }), 'driver: rexray · source: avmatrixeu → target: /data · RO')
   assert.equal(taskVolumes({ Volumes: { source: 'data', target: '/var/lib/data', mode: 'ro' } }), 'data:/var/lib/data:ro')
 })
 

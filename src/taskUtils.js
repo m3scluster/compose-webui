@@ -77,9 +77,14 @@ export const taskVolumes = (task) => {
   const formatVolume = (volume) => {
     if (typeof volume === 'string') return volume
     const formatValue = (value) => typeof value === 'object' && value !== null ? String(value.name ?? value.value ?? value.path ?? JSON.stringify(value)) : String(value ?? '')
-    const source = volume?.source ?? volume?.Source ?? volume?.host_path ?? volume?.hostPath ?? ''
+    const source = volume?.source ?? volume?.Source ?? volume?.host_path ?? volume?.hostPath ?? volume
     const target = volume?.target ?? volume?.Target ?? volume?.container_path ?? volume?.containerPath ?? ''
     const mode = volume?.permission ?? volume?.mode ?? volume?.Mode ?? ''
+    const dockerVolume = source?.docker_volume ?? volume?.docker_volume
+    if (dockerVolume) {
+      const modeLabel = mode === 1 || mode === '1' ? 'RW' : mode === 0 || mode === '0' ? 'RO' : formatValue(mode)
+      return `driver: ${formatValue(dockerVolume.driver || '—')} · source: ${formatValue(dockerVolume.name || '—')} → target: ${formatValue(target || '—')} · ${modeLabel}`
+    }
     return [source, target, mode].filter((value) => value !== '').map(formatValue).join(':') || JSON.stringify(volume)
   }
   if (Array.isArray(volumes)) return volumes.map(formatVolume).join(', ') || '—'
