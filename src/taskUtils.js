@@ -84,7 +84,7 @@ export const taskVolumes = (task) => {
   if (Array.isArray(volumes)) return volumes.map(formatVolume).join(', ') || '—'
   if (volumes && typeof volumes === 'object') {
     const hasVolumeFields = ['source', 'Source', 'host_path', 'hostPath', 'target', 'Target', 'container_path', 'containerPath'].some((field) => volumes[field] !== undefined)
-    return hasVolumeFields ? formatVolume(volumes) : Object.entries(volumes).map(([source, target]) => `${source}:${target}`).join(', ') || '—'
+    return hasVolumeFields ? formatVolume(volumes) : Object.entries(volumes).map(([source, target]) => typeof target === 'object' && target !== null ? formatVolume({ ...target, source }) : `${source}:${String(target)}`).join(', ') || '—'
   }
   return volumes ? String(volumes) : '—'
 }

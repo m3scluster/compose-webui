@@ -53,6 +53,7 @@ test('reads network and volume details from task payloads', () => {
   assert.equal(taskNetworkMode(task), 'weave')
   assert.equal(taskVolumes(task), 'data:/var/lib/data:ro')
   assert.equal(taskVolumes({ Volumes: { data: '/var/lib/data' } }), 'data:/var/lib/data')
+  assert.equal(taskVolumes({ Volumes: { data: { target: '/var/lib/data', mode: 'ro' } } }), 'data:/var/lib/data:ro')
   assert.equal(taskVolumes({ Volumes: { source: 'data', target: '/var/lib/data', mode: 'ro' } }), 'data:/var/lib/data:ro')
 })
 
