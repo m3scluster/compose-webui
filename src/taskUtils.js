@@ -76,10 +76,11 @@ export const taskVolumes = (task) => {
   const volumes = valueFrom(task, 'volumes', 'Volumes', 'volume')
   const formatVolume = (volume) => {
     if (typeof volume === 'string') return volume
-    const source = volume?.source || volume?.Source || volume?.host_path || volume?.hostPath || ''
-    const target = volume?.target || volume?.Target || volume?.container_path || volume?.containerPath || ''
-    const mode = volume?.permission || volume?.mode || volume?.Mode || ''
-    return [source, target, mode].filter(Boolean).join(':') || JSON.stringify(volume)
+    const formatValue = (value) => typeof value === 'object' && value !== null ? String(value.name ?? value.value ?? value.path ?? JSON.stringify(value)) : String(value ?? '')
+    const source = volume?.source ?? volume?.Source ?? volume?.host_path ?? volume?.hostPath ?? ''
+    const target = volume?.target ?? volume?.Target ?? volume?.container_path ?? volume?.containerPath ?? ''
+    const mode = volume?.permission ?? volume?.mode ?? volume?.Mode ?? ''
+    return [source, target, mode].filter((value) => value !== '').map(formatValue).join(':') || JSON.stringify(volume)
   }
   if (Array.isArray(volumes)) return volumes.map(formatVolume).join(', ') || '—'
   if (volumes && typeof volumes === 'object') {
