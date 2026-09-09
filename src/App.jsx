@@ -9,6 +9,10 @@ import './App.css'
 const API = import.meta.env.VITE_API_BASE_URL || 'https://api.example.invalid:10002'
 
 const date = (value) => {
+  if (typeof value === 'string' && value.trim() && Number.isNaN(Number(value))) {
+    const timestamp = new Date(value)
+    return Number.isNaN(timestamp.getTime()) ? '—' : timestamp.toLocaleString()
+  }
   const number = Number(value)
   if (!Number.isFinite(number) || number <= 0) return '—'
   const timestamp = new Date(number < 100000000000 ? number * 1000 : number)
