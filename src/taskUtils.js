@@ -74,14 +74,19 @@ export const taskNetworkName = (task) => {
 export const taskNetworkMode = (task) => String(valueFrom(task, 'network_mode', 'networkMode', 'NetworkMode', 'mode') || '—')
 export const taskVolumes = (task) => {
   const volumes = valueFrom(task, 'volumes', 'Volumes', 'volume')
-  if (!Array.isArray(volumes)) return volumes ? String(volumes) : '—'
-  return volumes.map((volume) => {
+  const formatVolume = (volume) => {
     if (typeof volume === 'string') return volume
     const source = volume?.source || volume?.Source || volume?.host_path || volume?.hostPath || ''
     const target = volume?.target || volume?.Target || volume?.container_path || volume?.containerPath || ''
     const mode = volume?.permission || volume?.mode || volume?.Mode || ''
     return [source, target, mode].filter(Boolean).join(':') || JSON.stringify(volume)
-  }).join(', ') || '—'
+  }
+  if (Array.isArray(volumes)) return volumes.map(formatVolume).join(', ') || '—'
+  if (volumes && typeof volumes === 'object') {
+    const hasVolumeFields = ['source', 'Source', 'host_path', 'hostPath', 'target', 'Target', 'container_path', 'containerPath'].some((field) => volumes[field] !== undefined)
+    return hasVolumeFields ? formatVolume(volumes) : Object.entries(volumes).map(([source, target]) => `${source}:${target}`).join(', ') || '—'
+  }
+  return volumes ? String(volumes) : '—'
 }
 export const isRunning = (task) => ['TASK_RUNNING', 'RUNNING', 'TASK_STARTING', 'STARTING'].includes(taskState(task))
 export const isFailed = (task) => ['TASK_FAILED', 'FAILED', 'TASK_ERROR', 'ERROR', 'TASK_LOST'].includes(taskState(task))

@@ -52,6 +52,8 @@ test('reads network and volume details from task payloads', () => {
   assert.equal(taskNetworkName(task), 'frontend')
   assert.equal(taskNetworkMode(task), 'weave')
   assert.equal(taskVolumes(task), 'data:/var/lib/data:ro')
+  assert.equal(taskVolumes({ Volumes: { data: '/var/lib/data' } }), 'data:/var/lib/data')
+  assert.equal(taskVolumes({ Volumes: { source: 'data', target: '/var/lib/data', mode: 'ro' } }), 'data:/var/lib/data:ro')
 })
 
 test('reads task IDs from the API field variants', () => {
